@@ -4,7 +4,9 @@ import serial
 from yolov5_killjoy.character import detect_character
 import cv2
 
-# 定义关键词与音频文件、发送的字节的映射关系
+# 定义关键词与音频文件、发送的字节的映射关系，
+# audio对应该动作播放的音频文件，data是数据包，实际上就是bin或odr文件的名称，
+# time是间隔时间，留给剧本对白。每个机器人的动作文件以及执行逻辑都不一样，所以这个字典需要重点修改。
 keyword_mapping = {
     "回答": {"audio": "resources/我在.wav",
         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x13, 0x0e, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x68, 0x75, 0x61,
@@ -214,7 +216,8 @@ def action_neo(text):
             
  
 
-
+# 这里修改的原因是因为机器人有时候做一些动作时需要同步播放音频，
+# 比如奇乐执行一连串射击动作需要有射击音效，因此需要根据对应动作delay一定时间来实现。index是动作序号
 def send_serial_data(ser, data, index):
     ser.write(bytearray(data))
     flag = 0

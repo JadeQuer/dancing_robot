@@ -13,7 +13,10 @@ from ctypes import *
 from contextlib import contextmanager
 from action_neo import action_neo
 
-# 比赛流程
+# 这里封装好一个函数，即根据比赛流程设置的主要逻辑
+# 就是唤醒机器人后，需要干的动作，这里先进行语音识别，判断识别结果
+# 再将结果传入action_neo 进行任务分类以及具体实现
+# 整个文件需要改动的地方就是这里，其他地方是官方提供的标准代码
 def robot_process():
     text = speech_recog()
     print("识别结果是:" + text)

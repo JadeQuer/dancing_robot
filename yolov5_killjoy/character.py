@@ -10,6 +10,8 @@ import pathlib
 from pathlib import Path
 pathlib.WindowsPath = pathlib.PosixPath
 
+
+#这里的路径需要注意，这部分代码的意思就是将当前目录设置为代码的根目录，以免代码环境冲突
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
 if str(ROOT) not in sys.path:
