@@ -80,44 +80,26 @@ source /home/pi/myenv/bin/activate
 
 ### 三、代码部分
 
-#### 1.代码功能
-
 主要模型：snowboy，vosk，movenet
 
-- main.py：主文件，运行进入逻辑循环
+-  [main.py](./main.py)：主文件，运行进入逻辑循环
 
 
-- snowboydecoder.py：调用snowboydetect模型进行热词唤醒，调用 speech_recog.py 获得文本 text ，传入 action_neo.py 进行行为逻辑判断
+- [snowboydecoder.py](./snowboydecoder.py) ：调用snowboydetect模型进行热词唤醒，调用 speech_recog.py 获得文本 text ，传入 action_neo.py 进行行为逻辑判断
 
 
-- speech_recog.py：语音识别，主要逻辑是先进行几秒的录音，存储在临时文件里，然后再调用模型识别结果，并将结果传给 action_neo.py 。
+- [speech_recog.py](./speech_recog.py) ：语音识别，主要逻辑是先进行几秒的录音，存储在临时文件里，然后再调用模型识别结果，并将结果传给 action_neo.py 。
 
 
-- action_neo.py： 主要行为逻辑，调用 pose_estimate.py 和 rhythm_recog.py ，用于完成要求的姿态识别、韵律识别。
+- [action_neo.py](./action_neo.py)： 主要行为逻辑，调用 pose_estimate.py 和 rhythm_recog.py ，用于完成要求的姿态识别、韵律识别。
 
 
-- pose_estimate.py：姿态识别，识别的方法是获取人体18个关键点，然后判断相应的位置长度关系来确定姿势。
+- [pose_estimate.py](./pose_estimate.py)：姿态识别，识别的方法是获取人体18个关键点，然后判断相应的位置长度关系来确定姿势。
 
 
-- rhythm_recog.py：韵律识别，提前选择歌曲进行训练，原理是获取音乐鼓点并进行声音采样记录，然后识别时判断正在播放的歌曲鼓点更靠近哪个训练曲目（所以最后一定会识别出一个结果，就算播放非训练曲目也会得到结果）。
-
-#### 2.具体代码
-
-##### main.py
-
-##### snowboydecoder.py
-
-##### action_neo.py
-
-##### rhythm_recog.py
-
-##### pose_estimate.py
-
-##### speech_recog.py
-
-##### character.py
-
-(这个文件是yolo的目标检测，只在奇乐的树莓派5上使用了，放在yolov5的文件夹下)
+- [rhythm_recog.py](./rhythm_recog.py)：韵律识别，提前选择歌曲进行训练，原理是获取音乐鼓点并进行声音采样记录，然后识别时判断正在播放的歌曲鼓点更靠近哪个训练曲目（所以最后一定会识别出一个结果，就算播放非训练曲目也会得到结果）。
+-  [character.py](./character.py)：这个文件是yolo的目标检测，只在奇乐的树莓派5上使用了，放在yolov5的文件夹下
+- [speech_recog.py](./speech_recog.py) ：语音识别
 
 
 
