@@ -54,7 +54,7 @@ def record(f, time=5):
 
 
 def speech_recog():
-    record('./temp_record/temp.wav', time=3)
+    record('./temp_record/temp.wav', time=2)
     vosk.SetLogLevel(-1)
     wf = wave.open("./temp_record/temp.wav", "rb")
     if wf.getnchannels() != 1 or wf.getsampwidth() != 2 or wf.getcomptype() != "NONE":

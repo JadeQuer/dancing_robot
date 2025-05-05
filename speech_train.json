@@ -1,0 +1,70 @@
+{
+    "前进": {
+        "name": "forward",
+        "list": [
+            "前进",
+            "险境"
+        ]
+    },
+    "后退": {
+        "name": "backward",
+        "list": [
+            "后退"
+        ]
+    },
+    "左移": {
+        "name": "move_to_left",
+        "list": [
+            "所以",
+            "躲一",
+            "所做一"
+        ]
+    },
+    "右移": {
+        "name": "move_to_right",
+        "list": [
+            "有呢",
+            "有意义",
+            "有一"
+        ]
+    },
+    "左脚撑": {
+        "name": "left_leg_stretch",
+        "list": [
+            "左脚称"
+        ]
+    },
+    "右脚撑": {
+        "name": "right_leg_stretch",
+        "list": [
+            "右脚称"
+        ]
+    },
+    "举左手": {
+        "name": "left_hand_up",
+        "list": [
+            "与左手",
+            "据左手"
+        ]
+    },
+    "举双手": {
+        "name": "both_hands_up",
+        "list": [
+            "与双手",
+            "举双手"
+        ]
+    },
+    "向左转": {
+        "name": "turn_left",
+        "list": [
+            "向左转"
+        ]
+    },
+    "向右转": {
+        "name": "turn_right",
+        "list": [
+            "向右转"
+        ]
+    },
+    "黑名单": []
+}
