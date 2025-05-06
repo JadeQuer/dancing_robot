@@ -1,121 +1,21 @@
 import os
 import time
+import json
 import serial
-from yolov5_killjoy.character import detect_character
-import cv2
+from rhythm_recog import rhythm_recog
+from speech_recog import speech_recog
+from datapackage import DataPackageConverter
+from posture_identification.static_recognition import StaticPostureIdentifier
 
-# 定义关键词与音频文件、发送的字节的映射关系，
-# audio对应该动作播放的音频文件，data是数据包，实际上就是bin或odr文件的名称，
-# time是间隔时间，留给剧本对白。每个机器人的动作文件以及执行逻辑都不一样，所以这个字典需要重点修改。
-keyword_mapping = {
-    "回答": {"audio": "resources/我在.wav",
-        "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x13, 0x0e, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x68, 0x75, 0x61,
-                 0x6e, 0x78, 0x69, 0x6e, 0x67, 0x2e, 0x6f, 0x64, 0x72, 0x06],
-        "time": 7
-        },
-    "站立": {"audio": "resources/站立姿势.wav",
-        "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x11, 0x09, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x7a, 0x68, 0x61,
-                 0x6e, 0x6c, 0x69, 0x2e, 0x62, 0x69, 0x6e, 0x16],
-        "time": 0
-        },
-    "蹲起": {"audio": "resources/蹲起姿势.wav",
-        "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x10, 0x09, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x64, 0x75, 0x6e,
-                 0x71, 0x69, 0x2e, 0x62, 0x69, 0x6e, 0xaf],
-        "time": 0
-        },
-    "扭头": {"audio": "resources/扭头姿势.wav",
-        "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x11, 0x09, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x6e, 0x69, 0x75,
-                 0x74, 0x6f, 0x75, 0x2e, 0x62, 0x69, 0x6e, 0x34],
-        "time": 10
-        },
-    "锁定": {"audio": "resources/ding.wav",
-        "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x12, 0x09, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x67, 0x65, 0x6e,
-                 0x7a, 0x6f, 0x6e, 0x67, 0x2e, 0x62, 0x69, 0x6e, 0x89],
-        "time": 7
-        },
-    "识别": {
-        1: {"audio": "null",
-        "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x13, 0x09, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x73, 0x61, 0x6f,
-                 0x6d, 0x69, 0x61, 0x6f, 0x31, 0x2e, 0x62, 0x69, 0x6e, 0xac],
-        "time": 7
-        },
-        2: {"audio": "resources/sage.wav",
-        "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x13, 0x09, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x73, 0x61, 0x6f,
-                 0x6d, 0x69, 0x61, 0x6f, 0x32, 0x2e, 0x62, 0x69, 0x6e, 0xad],
-        "time": 7
-        },
-        3: {"audio": "resources/breach.wav",
-        "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x13, 0x09, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x73, 0x61, 0x6f,
-                 0x6d, 0x69, 0x61, 0x6f, 0x33, 0x2e, 0x62, 0x69, 0x6e, 0xae],
-        "time": 7
-        },
-        4: {"audio": "resources/chamber.wav",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x13, 0x09, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x73, 0x61, 0x6f,
-                  0x6d, 0x69, 0x61, 0x6f, 0x34, 0x2e, 0x62, 0x69, 0x6e, 0xaf],
-         "time": 5
-         }},
-    "指挥": {
-         1: {"audio": "resources/我在.wav",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x13, 0x0e, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x68, 0x75, 0x61,
-                  0x6e, 0x78, 0x69, 0x6e, 0x67, 0x2e, 0x6f, 0x64, 0x72, 0x06],
-         "time": 5
-         },
-         2: {"audio": "resources/准备.wav",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x12, 0x0e, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x7a, 0x68, 0x75,
-                  0x6e, 0x62, 0x65, 0x69, 0x2e, 0x6f, 0x64, 0x72, 0x97],
-         "time": 10
-         },
-         3: {"audio": "resources/收到.wav",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x12, 0x09, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x73, 0x6f, 0x75,
-                  0x78, 0x75, 0x6e, 0x31, 0x2e, 0x62, 0x69, 0x6e, 0x74],
-         "time": 0
-         },
-         4: {"audio": "resources/锁定敌人.wav",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x11, 0x09, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x31, 0x6b, 0x69,
-                  0x6c, 0x6c, 0x31, 0x2e, 0x62, 0x69, 0x6e, 0x9d],
-         "time": 0
-         },
-         5: {"audio": "resources/锁定右侧.wav",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x14, 0x0e, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x74, 0x75, 0x72,
-                  0x6e, 0x72, 0x69, 0x67, 0x68, 0x74, 0x2e, 0x6f, 0x64, 0x72, 0x8c],
-         "time": 5
-         },
-         6: {"audio": "null",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x10, 0x0e, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x32, 0x6b, 0x69,
-                  0x6c, 0x6c, 0x2e, 0x6f, 0x64, 0x72, 0x7d],
-         "time": 5
-         },
-         7: {"audio": "null",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x10, 0x0e, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x33, 0x6b, 0x69,
-                  0x6c, 0x6c, 0x2e, 0x6f, 0x64, 0x72, 0x7e],
-         "time": 5
-         },
-         8: {"audio": "resources/收到.wav",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x10, 0x0e, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x34, 0x6b, 0x69,
-                  0x6c, 0x6c, 0x2e, 0x6f, 0x64, 0x72, 0x7f],
-         "time": 20,
-         },
-         9: {"audio": "resources/寻找目标.wav",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x10, 0x0e, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x35, 0x6b, 0x69,
-                  0x6c, 0x6c, 0x2e, 0x6f, 0x64, 0x72, 0x80],
-         "time": 15,
-         },
-         10: {"audio": "null",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x10, 0x0e, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x73, 0x70, 0x69,
-                  0x6b, 0x65, 0x2e, 0x6f, 0x64, 0x72, 0xbb],
-         "time": 0,
-         },
-         11: {"audio": "resources/炸弹已拆除",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x19, 0x0e, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x70, 0x72, 0x65,
-                  0x70, 0x61, 0x72, 0x65, 0x64, 0x61, 0x6e, 0x63, 0x69, 0x6e, 0x67, 0x2e, 0x6f, 0x64, 0x72, 0x6f],
-         "time": 5
-         },
-         12: {"audio": "resources/tickingaway.mp3",
-         "data": [0xff, 0x00, 0x05, 0x05, 0x00, 0x12, 0x0e, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x64, 0x61, 0x6e,
-                  0x63, 0x69, 0x6e, 0x67, 0x2e, 0x6f, 0x64, 0x72, 0x76],
-         "time": 0
-         }}
-}
+# 导入main模块中初始化的姿势识别器
+try:
+    import main
+    pose_identifier = main.pose_identifier
+    print("已获取main.py中初始化的静态姿势识别器")
+except (ImportError, AttributeError) as e:
+    print(f"无法从main.py导入姿势识别器: {e}")
+    pose_identifier = None
+
 
 # 初始化串口
 def initialize_serial():
@@ -129,7 +29,7 @@ def initialize_serial():
 
 
 def play_audio(audio_file):
-    os.system('mplayer %s' % audio_file)
+    os.system('mplayer -volume 200 %s' % audio_file)
     
 # 保存局部变量到文件
 def save_variable_to_file(value):
@@ -138,133 +38,120 @@ def save_variable_to_file(value):
 
 
 def action_neo(text):
-    cap = cv2.VideoCapture(0)
+    # 读取 speech_train.json 文件
+    try:
+        with open('speech_train.json', 'r', encoding='utf-8') as f:
+            speech_data = json.load(f)
+    except Exception as e:
+        print(f"Error loading speech_train.json: {e}")
+        return
+
     ser = initialize_serial()
-    keyword = ""
-    # 输出信息
-    keyword_mapping.get(text)
-    for word in keyword_mapping:
-        if word in text:
-            keyword = word
-            print("Keyword is %s" % keyword)
+    keyword = "" # 存储指令的name字段
+    
+    # 遍历 speech_train.json 检查是否有匹配的关键词
+    for action, action_data in speech_data.items():
+        # 跳过黑名单
+        if action == "黑名单":
+            continue
+        
+        # 检查 text 是否包含列表中的任一关键词
+        for keyword_text in action_data["list"]:
+            if keyword_text in text:
+                # 找到匹配的关键词，使用对应的 name 值
+                keyword = action_data["name"]
+                print(f"找到关键词 '{keyword_text}'，对应动作 '{action}'，指令名称 '{keyword}'")
+                break
+        
+        if keyword:  # 如果找到了关键词，退出外层循环
             break
 
     if not keyword:
         play_audio('resources/sorry.wav')
         
     else:
+        # 姿态识别
+        if keyword == "pose_recognition":            
+            play_audio('resources/begin_pose.wav')
+            play_audio('resources/dong.wav')
+            
+            while True:
+                
+                # 检查姿势识别器是否已成功初始化
+                global pose_identifier
+                if pose_identifier is None:
+                    print("姿势识别器未初始化，尝试重新初始化...")
+                    try:
+                        pose_identifier = StaticPostureIdentifier()
+                    except Exception as e:
+                        print(f"初始化姿势识别器失败: {e}")
+                        play_audio('resources/sorry.wav')
+                        return
+                
+                # 使用初始化好的识别器实例
+                print("请在摄像头前保持姿势...")
+                # 调用静态姿势识别函数
+                pose = pose_identifier.recognize_posture(camera_index=0, timeout=15, stable_duration=2.0, display=True)
+                
+                
+                if pose is None:
+                    play_audio('resources/timeout.wav')
+                    break
+                
+                if pose == "stop":
+                    play_audio('resources/stop.wav')
+                    break
+            
+                play_audio(pose + ".wav")
+                send_bytes = DataPackageConverter(pose + ".bin").hex_output
+                send_serial_data(ser, send_bytes)
 
         # 韵律识别
-        if keyword == "识别":
-            play_audio("resources/ding.wav")
-            keyword_info = keyword_mapping[keyword]
-            begin_bytes = [0xff, 0x00, 0x05, 0x05, 0x00, 0x0f, 0x09, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x6f, 0x70, 0x65, 0x6e, 0x2e, 0x62, 0x69, 0x6e, 0x3f]
-            finish_bytes = [0xff, 0x00, 0x05, 0x05, 0x00, 0x10, 0x09, 0x6b, 0x69, 0x6c, 0x6c, 0x6a, 0x6f, 0x79, 0x63, 0x6c, 0x6f, 0x73, 0x65, 0x2e, 0x62, 0x69, 0x6e, 0xa4]
-            # send_serial_data(ser, begin_bytes, 0)
-            for index in keyword_info:
-                info = keyword_info[index]
-                audio_file = info["audio"]
-                send_bytes = info["data"]
-                sleep_time = info["time"]
-                if index == 1:
-                    success, result = cap.read()
-                if index == 4:
-                    cap.release()
-                if audio_file != "null":
-                    play_audio(audio_file)
-                send_serial_data(ser, send_bytes, 0)
-                time.sleep(sleep_time)
-            send_serial_data(ser, finish_bytes, 0)
-
-        elif keyword == "指挥":
-            play_audio("resources/ding.wav")
-            keyword_info = keyword_mapping[keyword]
-            for index in keyword_info:
-                 print(index)
-                 info = keyword_info[index]
-                 audio_file = info["audio"]
-                 send_bytes = info["data"]
-                 sleep_time = info["time"]
-                 if audio_file != "null":
-                     if index != 12:
-                        play_audio(audio_file)
-                        send_serial_data(ser, send_bytes, index)
-                     elif index == 12:
-                        send_serial_data(ser, send_bytes, index)
-                        # play_audio(audio_file)
-                 else:
-                     send_serial_data(ser, send_bytes, index)
-                 time.sleep(sleep_time)
-
+        elif keyword == "rhythm_recognition":
+            play_audio("resources/yunlv.wav")
+            matched_song, compare_result = rhythm_recog()
+            play_audio("index/"+matched_song) # 歌曲名称
+            if matched_song == "choice.MP3":
+                movements = DataPackageConverter("choice.odr").hex_output
+            else:
+                movements = DataPackageConverter("dance.odr").hex_output
+            ser.write(bytearray(movements)) # 执行动作
+            play_audio(matched_song) # 播放歌曲
+        
         # 自选动作
         else:
-            index = 0
-            play_audio("resources/ding.wav")
-            keyword_info = keyword_mapping[keyword]
-            if keyword_info == "锁定":
-                success, result = cap.read()
-            audio_file = keyword_info["audio"]
-            send_bytes = keyword_info["data"]
+            audio_file = keyword + ".wav"
+            send_bytes = DataPackageConverter(keyword + ".bin").hex_output
             play_audio(audio_file)
-            send_serial_data(ser, send_bytes, index)
-            if keyword_info == "锁定":
-                time.sleep(12)
-                cap.release()
+            send_serial_data(ser, send_bytes)
 
         if ser and ser.isOpen():
             ser.close()
             
- 
 
-# 这里修改的原因是因为机器人有时候做一些动作时需要同步播放音频，
-# 比如奇乐执行一连串射击动作需要有射击音效，因此需要根据对应动作delay一定时间来实现。index是动作序号
-def send_serial_data(ser, data, index):
+
+
+def send_serial_data(ser, data):
     ser.write(bytearray(data))
-    flag = 0
     while True:
         size = ser.inWaiting()  # 获得缓冲区字符
         if size != 0:
-            flag += 1
             res = ser.read(size)  # 读取内容并显示
             print(res)
             ser.flushInput()  # 情况接收缓存区
-            if res == b'\xff\x00\x05\x05\x00\x00\x18' or res == b'\xff\x00\x05\x05\x00\x00\x19':
-                print("receive sucessfully!")
-            if b'\xff\x00\x05\x05\x00\x06' in res:
-                print("action is over")
+            if res == b'\xff\x00\x05\x05\x00\x00\x18"' or res == b'\xff\x00\x05\x05\x00\x00\x19"':
                 break
-            if index == 0 or index == 12:
-                break
-            if index == 4 and flag == 1:
-                time.sleep(1)
-                play_audio("resources/shoot1.mp3")
-            if index == 6 and flag == 1:
-                time.sleep(1.6)
-                play_audio("resources/shoot2.mp3")
-            if index == 7 and flag == 1:
-                time.sleep(27.4)
-                play_audio("resources/shoot.mp3")
-                time.sleep(0.9)
-                play_audio("resources/shoot.mp3")
-            if index == 8 and flag == 1:
-                time.sleep(9.3)
-                play_audio("resources/shoot4.mp3")
-                time.sleep(0.9)
-                play_audio("resources/shoot4.mp3")
-                time.sleep(1)
-                play_audio("resources/shoot4.mp3")
-                time.sleep(1)
-                play_audio("resources/shoot4.mp3")
-            if index == 9 and flag == 1:
-                time.sleep(15.2)
-                play_audio("resources/shoot5.mp3")
-        
+            time.sleep(0.5)  # 软件延时
+            
 
 
 if __name__ == '__main__':
     # 测试代码
-    action_neo("下蹲")
-   
-
-   
-    
+    while True:
+        order = int(input("请输入指令:0:退出 1:测试"))
+        if order == 0:
+            break
+        elif order == 1:
+            print("请说出指令...")
+            text = speech_recog()
+            action_neo(text)
