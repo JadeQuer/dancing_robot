@@ -6,7 +6,7 @@ import warnings
 import sys
 
 # 导入静态姿势识别器
-from posture_identification.static_recognition import StaticPostureIdentifier
+from posture_recognition.static_recognition import StaticPostureIdentifier
 
 path = "resources/ding.wav"
 os.system('mplayer %s' % path)

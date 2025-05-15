@@ -5,7 +5,7 @@ import serial
 from rhythm_recog import rhythm_recog
 from speech_recog import speech_recog
 from datapackage import DataPackageConverter
-from posture_identification.static_recognition import StaticPostureIdentifier
+from posture_recognition.static_recognition import StaticPostureIdentifier
 
 # 导入main模块中初始化的姿势识别器
 try:
