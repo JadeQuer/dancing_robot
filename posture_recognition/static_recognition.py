@@ -17,11 +17,22 @@ class StaticPostureIdentifier:
     用于识别静态图片中姿势的类
     """
     
-    def __init__(self, model_path="models/pose_landmarker_heavy.task"):
-        """初始化静态姿势识别器"""
+    def __init__(self, model_path="models/pose_landmarker_heavy.task", camera_rotation=0):
+        """
+        初始化静态姿势识别器
+        
+        参数:
+        - model_path: 模型文件路径
+        - camera_rotation: 摄像头旋转角度，支持0, 90, 180, 270度
+        """
         # 设置当前目录和模型路径
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.recognizer_path = os.path.join(self.current_dir, "output", "static_pose_recognizer.pickle")
+        
+        # 设置摄像头旋转角度
+        if camera_rotation not in [0, 90, 180, 270]:
+            raise ValueError("摄像头旋转角度必须是 0, 90, 180, 270 中的一个")
+        self.camera_rotation = camera_rotation
         
         # 加载姿势标记器模型
         BaseOptions = mp.tasks.BaseOptions
@@ -50,9 +61,34 @@ class StaticPostureIdentifier:
             print("请先运行 scripts/extract_keypoints_static.py 和 scripts/train_static_model.py")
             raise FileNotFoundError(f"找不到模型文件: {self.recognizer_path}")
 
+    def _rotate_image(self, image, angle):
+        """
+        根据指定角度旋转图像
+        
+        参数:
+        - image: 输入图像
+        - angle: 旋转角度 (0, 90, 180, 270)
+        
+        返回:
+        - 旋转后的图像
+        """
+        if angle == 0:
+            return image
+        elif angle == 90:
+            return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        elif angle == 180:
+            return cv2.rotate(image, cv2.ROTATE_180)
+        elif angle == 270:
+            return cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        else:
+            raise ValueError(f"不支持的旋转角度: {angle}")
+
     def use(self, frame):
         """识别给定图片中的姿势"""
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        # 首先根据摄像头旋转角度旋转图像
+        rotated_frame = self._rotate_image(frame, self.camera_rotation)
+        
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(rotated_frame, cv2.COLOR_BGR2RGB))
         pose_landmarks_result = self.landmarker.detect(mp_image)
         pose_landmarks_list = pose_landmarks_result.pose_landmarks
         annotated_frame = cv2.cvtColor(np.copy(mp_image.numpy_view()), cv2.COLOR_RGB2BGR)
@@ -98,7 +134,7 @@ class StaticPostureIdentifier:
         
         return posture_label, probability
 
-    def recognize_posture(self, camera_index=0, timeout=30, stable_duration=2.0, display=True):
+    def recognize_posture(self, camera_index=0, timeout=30, stable_duration=2.0, display=True, camera_rotation=None):
         """
         打开摄像头识别姿势，并在稳定后返回识别结果
         
@@ -107,10 +143,19 @@ class StaticPostureIdentifier:
         - timeout: 最大等待时间(秒)，超时后返回None
         - stable_duration: 姿势需要保持稳定的秒数，默认为2.0秒
         - display: 是否显示识别过程窗口
+        - camera_rotation: 临时设置摄像头旋转角度，如果为None则使用初始化时的角度
         
         返回:
         - 识别到的姿势名称，如果超时或用户中断则返回None
         """
+        # 如果提供了临时旋转角度，保存原始角度并设置新角度
+        original_rotation = None
+        if camera_rotation is not None:
+            if camera_rotation not in [0, 90, 180, 270]:
+                raise ValueError("摄像头旋转角度必须是 0, 90, 180, 270 中的一个")
+            original_rotation = self.camera_rotation
+            self.camera_rotation = camera_rotation
+            
         # 初始化摄像头
         cap = cv2.VideoCapture(camera_index)
         if not cap.isOpened():
@@ -123,6 +168,8 @@ class StaticPostureIdentifier:
         last_detection_time = 0
         
         print("请在摄像头前保持稳定姿势...")
+        if self.camera_rotation != 0:
+            print(f"摄像头已设置为旋转 {self.camera_rotation} 度")
         
         try:
             while True:
@@ -170,7 +217,7 @@ class StaticPostureIdentifier:
                             
                             # 如果需要显示，在返回结果前展示一下
                             if display:
-                                cv2.imshow('姿势识别', annotated_frame)
+                                cv2.imshow('pose', annotated_frame)
                                 cv2.waitKey(1000)  # 显示结果1秒
                             
                             print(f"成功识别姿势: {current_posture}")
@@ -204,15 +251,29 @@ class StaticPostureIdentifier:
             cap.release()
             if display:
                 cv2.destroyAllWindows()
+            
+            # 恢复原始旋转角度
+            if original_rotation is not None:
+                self.camera_rotation = original_rotation
         
         # 如果到这里，说明超时或其他原因导致退出循环
         return None
 
 if __name__ == "__main__":
-    # 测试代码
-    pose_identifier = StaticPostureIdentifier()
+    # 测试代码 - 可以测试不同的旋转角度
+    print("测试普通姿势识别（0度）...")
+    pose_identifier = StaticPostureIdentifier(camera_rotation=0)
     pose = pose_identifier.recognize_posture(camera_index=0, timeout=15, stable_duration=2.0, display=True)
     if pose:
         print(f"识别到的姿势: {pose}")
     else:
         print("未能识别到姿势或用户中断")
+    
+    # 如果想测试旋转90度的情况，可以取消注释下面的代码
+    # print("\n测试旋转90度姿势识别...")
+    # pose_identifier_90 = StaticPostureIdentifier(camera_rotation=90)
+    # pose = pose_identifier_90.recognize_posture(camera_index=0, timeout=15, stable_duration=2.0, display=True)
+    # if pose:
+    #     print(f"识别到的姿势: {pose}")
+    # else:
+    #     print("未能识别到姿势或用户中断")
