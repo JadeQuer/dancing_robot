@@ -1,12 +1,9 @@
 import snowboydecoder
 import signal
 import os
-import tensorflow as tf
 import warnings
 import sys
-
-# 导入静态姿势识别器
-from posture_recognition.static_recognition import StaticPostureIdentifier
+import config
 
 path = "resources/ding.wav"
 os.system('mplayer %s' % path)
@@ -26,14 +23,7 @@ def interrupt_callback():
 
 warnings.filterwarnings("ignore")
 
-# 初始化静态姿势识别器（全局变量）
-try:
-    print("初始化静态姿势识别器...")
-    pose_identifier = StaticPostureIdentifier()
-    print("静态姿势识别器初始化完成")
-except Exception as e:
-    print(f"初始化静态姿势识别器失败: {e}")
-    pose_identifier = None
+config.initialize_pose_identifier()
     
 model = "model/killjoy.pmdl"
 

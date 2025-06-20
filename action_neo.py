@@ -6,15 +6,9 @@ from rhythm_recog import rhythm_recog
 from speech_recog import speech_recog
 from datapackage import DataPackageConverter
 from posture_recognition.static_recognition import StaticPostureIdentifier
+import config
 
-# 导入main模块中初始化的姿势识别器
-try:
-    import main
-    pose_identifier = main.pose_identifier
-    print("已获取main.py中初始化的静态姿势识别器")
-except (ImportError, AttributeError) as e:
-    print(f"无法从main.py导入姿势识别器: {e}")
-    pose_identifier = None
+pose_identifier = config.pose_identifier
 
 
 # 初始化串口
@@ -148,10 +142,13 @@ def send_serial_data(ser, data):
 if __name__ == '__main__':
     # 测试代码
     while True:
-        order = int(input("请输入指令:0:退出 1:测试"))
+        order = int(input("请输入指令:0:退出 1:voice 2:keyboard"))
         if order == 0:
             break
         elif order == 1:
             print("请说出指令...")
             text = speech_recog()
+            action_neo(text)
+        elif order == 2:
+            text = input()
             action_neo(text)
