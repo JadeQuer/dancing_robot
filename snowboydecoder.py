@@ -1,6 +1,7 @@
 # coding=UTF-8
 import collections
 import pyaudio
+import serial
 from speech_recog import record, speech_recog
 from speech_recog import speech_recog
 from swig.Python3 import snowboydetect
@@ -12,11 +13,38 @@ import logging
 from ctypes import *
 from contextlib import contextmanager
 from action_neo import action_neo
+from datapackage import DataPackageConverter
 
 # 这里封装好一个函数，即根据比赛流程设置的主要逻辑
 # 就是唤醒机器人后，需要干的动作，这里先进行语音识别，判断识别结果
 # 再将结果传入action_neo 进行任务分类以及具体实现
 # 整个文件需要改动的地方就是这里，其他地方是官方提供的标准代码
+
+# 初始化串口
+def initialize_serial():
+    try:
+        ser = serial.Serial('/dev/ttyAMA0', 115200)
+        if not ser.isOpen():
+            ser.open()
+        return ser
+    except serial.SerialException:
+        raise Exception("Failed to initialize serial connection.")
+
+def send_serial_data(ser, data):
+    ser.write(bytearray(data))
+    while True:
+        size = ser.inWaiting()  # 获得缓冲区字符
+        if size != 0:
+            res = ser.read(size)  # 读取内容并显示
+            print(res)
+            ser.flushInput()  # 情况接收缓存区
+            if res == b'\xff\x00\x05\x05\x00\x00\x18"' or res == b'\xff\x00\x05\x05\x00\x00\x19"':
+                break
+            time.sleep(0.5)  # 软件延时
+
+def play_audio(audio_file):
+    os.system('mplayer -volume 150 %s' % audio_file)
+
 def robot_process():
     text = speech_recog()
     print("识别结果是:" + text)
@@ -233,8 +261,32 @@ class HotwordDetector(object):
                     message += time.strftime("%Y-%m-%d %H:%M:%S",
                                              time.localtime(time.time()))
                     logger.info(message)
+                    
                     """后面增加触发后的动作"""
-                    robot_process()
+                    if self.first_time:
+                        play_audio('resources/ding.wav')
+                        ser = initialize_serial()
+                        action = DataPackageConverter("1.odr").hex_output
+    
+                        ser.write(bytearray(action))
+                        play_audio('resources/introduction.WAV')
+        
+                        if ser and ser.isOpen():
+                            ser.close()
+        
+                        time.sleep(9)
+        
+                        ser = initialize_serial()
+                        action = DataPackageConverter("2.odr").hex_output
+
+                        ser.write(bytearray(action))
+                        play_audio('resources/responsibility.WAV')
+
+                        if ser and ser.isOpen():
+                            ser.close()
+                        self.first_time = False
+                    else:
+                        robot_process()
 
                     callback = detected_callback[status-1]
                     if callback is not None:

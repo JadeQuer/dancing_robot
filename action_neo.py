@@ -5,17 +5,7 @@ import serial
 from rhythm_recog import rhythm_recog
 from speech_recog import speech_recog
 from datapackage import DataPackageConverter
-from posture_recognition.static_recognition import StaticPostureIdentifier
-
-# 导入main模块中初始化的姿势识别器
-try:
-    import main
-    pose_identifier = main.pose_identifier
-    print("已获取main.py中初始化的静态姿势识别器")
-except (ImportError, AttributeError) as e:
-    print(f"无法从main.py导入姿势识别器: {e}")
-    pose_identifier = None
-
+import config
 
 # 初始化串口
 def initialize_serial():
@@ -29,7 +19,7 @@ def initialize_serial():
 
 
 def play_audio(audio_file):
-    os.system('mplayer -volume 200 %s' % audio_file)
+    os.system('mplayer -volume 150 %s' % audio_file)
     
 # 保存局部变量到文件
 def save_variable_to_file(value):
@@ -67,69 +57,53 @@ def action_neo(text):
             break
 
     if not keyword:
-        play_audio('resources/sorry.wav')
-        
-    else:
-        # 姿态识别
-        if keyword == "pose_recognition":            
-            play_audio('resources/begin_pose.wav')
-            play_audio('resources/dong.wav')
-            
-            while True:
-                
-                # 检查姿势识别器是否已成功初始化
-                global pose_identifier
-                if pose_identifier is None:
-                    print("姿势识别器未初始化，尝试重新初始化...")
-                    try:
-                        pose_identifier = StaticPostureIdentifier()
-                    except Exception as e:
-                        print(f"初始化姿势识别器失败: {e}")
-                        play_audio('resources/sorry.wav')
-                        return
-                
-                # 使用初始化好的识别器实例
-                print("请在摄像头前保持姿势...")
-                # 调用静态姿势识别函数
-                pose = pose_identifier.recognize_posture(camera_index=0, timeout=15, stable_duration=2.0, display=True)
-                
-                
-                if pose is None:
-                    play_audio('resources/timeout.wav')
-                    break
-                
-                if pose == "stop":
-                    play_audio('resources/stop.wav')
-                    break
-            
-                play_audio(pose + ".wav")
-                send_bytes = DataPackageConverter(pose + ".bin").hex_output
-                send_serial_data(ser, send_bytes)
+        play_audio('resources/sorry.WAV')
 
-        # 韵律识别
-        elif keyword == "rhythm_recognition":
-            play_audio("resources/yunlv.wav")
-            matched_song, compare_result = rhythm_recog()
-            play_audio("index/"+matched_song) # 歌曲名称
-            if matched_song == "choice.MP3":
-                movements = DataPackageConverter("choice.odr").hex_output
-            else:
-                movements = DataPackageConverter("dance.odr").hex_output
-            ser.write(bytearray(movements)) # 执行动作
-            play_audio(matched_song) # 播放歌曲
-        
-        # 自选动作
-        else:
-            audio_file = keyword + ".wav"
-            send_bytes = DataPackageConverter(keyword + ".bin").hex_output
-            play_audio(audio_file)
+    else:
+        if keyword == "DuoHuiShengBei":
+            play_audio("resources/guard.WAV")
+            send_bytes = DataPackageConverter("3.odr").hex_output
             send_serial_data(ser, send_bytes)
+
+            time.sleep(22)
+
+            play_audio("resources/meaning.WAV")
+
+            movements = DataPackageConverter("4.odr").hex_output
+            ser.write(bytearray(movements))
+            play_audio("resources/fight.MP3")
+
+        elif keyword == "ZhaoChuShengBei":
+            play_audio("resources/ding.wav")
+            play_audio("resources/scan.WAV")
+
+            time.sleep(10)
+
+            movements = DataPackageConverter("6.bin").hex_output
+            ser.write(bytearray(movements))
+            play_audio("resources/find.WAV")
+
+        elif keyword == "back" :
+            send_bytes = DataPackageConverter("3.odr").hex_output
+            send_serial_data(ser, send_bytes)
+            
+            time.sleep(5)
+
+            movements = DataPackageConverter("2.odr").hex_output
+            ser.write(bytearray(movements))
+            play_audio("resources/bring.WAV")
+
+        elif keyword == "dance" :
+            movements = DataPackageConverter("4.odr").hex_output
+            ser.write(bytearray(movements))
+            play_audio("resources/dance.MP3")
+
+            time.sleep(2)
+            play_audio("resources/end.WAV")
 
         if ser and ser.isOpen():
             ser.close()
             
-
-
 
 def send_serial_data(ser, data):
     ser.write(bytearray(data))
@@ -148,10 +122,21 @@ def send_serial_data(ser, data):
 if __name__ == '__main__':
     # 测试代码
     while True:
-        order = int(input("请输入指令:0:退出 1:测试"))
+        order = int(input("请输入指令:0:退出 1:voice 2:keyboard"))
         if order == 0:
             break
         elif order == 1:
             print("请说出指令...")
             text = speech_recog()
+            print(text)
             action_neo(text)
+        elif order == 2:
+            choice = int(input("请输入指令:1:夺回圣杯 2:找出圣杯"))
+            if choice == 1:
+                action_neo("夺回圣杯")
+            elif choice == 2:
+                action_neo("找出圣杯")
+            elif choice == 3:
+                action_neo("返回")
+            elif choice == 4:
+                action_neo("献上胜利之舞")

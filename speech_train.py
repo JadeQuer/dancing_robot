@@ -2,18 +2,10 @@ from speech_recog import speech_recog
 import json
 import os
 
-speech_result = {   1 : '前进', 
-                    2 : '后退', 
-                    3 : '左移', 
-                    4 : '右移', 
-                    5 : '左脚撑', 
-                    6 : '右脚撑',
-                    7 : '举左手',
-                    8 : '举双手',
-                    9 : '向左转',
-                    10 : '向右转',
-                    11 : '姿态识别',
-                    12 : '韵律识别'}
+speech_result = {   1 : '夺回圣杯', 
+                    2 : '找出圣杯',
+                    3 : '返回',
+                    4 : '献上胜利之舞'   }
 
 def list_clean(json_path='speech_train.json'):
     """
@@ -80,7 +72,7 @@ def speech_train():
 
     while True:
         print("请输入你要训练的语音指令：")
-        print("0:退出 1:前进 2:后退 3:左移 4:右移 5:左脚撑 6:右脚撑 7:举左手 8:举双手 9:向左转 10:向右转 11:姿态识别 12:韵律识别")
+        print("0:退出 1:夺回圣杯 2:找出圣杯 3:返回 4:献上胜利之舞")
         try:
             num = int(input())
             if num == 0:
@@ -90,41 +82,44 @@ def speech_train():
                 print("输入错误，请重新输入")
                 continue
             
-            print(f"请说出{speech_result[num]}的语音指令...")
-            text = speech_recog()
-            if text:
-                # 清理文本，去除换行符和多余的空格
-                cleaned_text = text.strip()
+            count = 10
+            while count > 0:
+                count -= 1
+                print(f"请说出{speech_result[num]}的语音指令...")
+                text = speech_recog()
+                if text:
+                    # 清理文本，去除换行符和多余的空格
+                    cleaned_text = text.replace('\n', '').strip()
                 
-                # 检查是否在黑名单中
-                if "黑名单" in speech_data and cleaned_text in speech_data["黑名单"]:
-                    print(f"'{cleaned_text}' 在黑名单中，因为它会导致指令冲突")
-                    continue
+                    # 检查是否在黑名单中
+                    if "黑名单" in speech_data and cleaned_text in speech_data["黑名单"]:
+                        print(f"'{cleaned_text}' 在黑名单中，因为它会导致指令冲突")
+                        continue
                 
-                # 获取对应的动作名称
-                action_name = speech_result[num]
-                # 显示识别结果并请求再次确认
-                print(f"识别结果: {cleaned_text}")
-                second_confirm = input(f"确认将 '{cleaned_text}' 添加到 '{action_name}' 吗？(y/n): ")
-                if second_confirm.lower() != 'y':
-                    print("已取消添加")
-                    continue
+                    # 获取对应的动作名称
+                    action_name = speech_result[num]
+                    # 显示识别结果并请求再次确认
+                    print(f"识别结果: {cleaned_text}")
+                    second_confirm = input(f"确认将 '{cleaned_text}' 添加到 '{action_name}' 吗？(y/n): ")
+                    if second_confirm.lower() != 'y':
+                        print("已取消添加")
+                        continue
                 
-                # 检查是否已存在相同的语音命令
-                if cleaned_text in speech_data[action_name]["list"]:
-                    print(f"'{cleaned_text}' 已存在于 '{action_name}' 的语音命令列表中")
-                    continue
+                    # 检查是否已存在相同的语音命令
+                    if cleaned_text in speech_data[action_name]["list"]:
+                        print(f"'{cleaned_text}' 已存在于 '{action_name}' 的语音命令列表中")
+                        continue
                 
-                # 将识别结果添加到对应动作的list中
-                speech_data[action_name]["list"].append(cleaned_text)
-                print(f"成功添加: {cleaned_text} -> {action_name}")
+                    # 将识别结果添加到对应动作的list中
+                    speech_data[action_name]["list"].append(cleaned_text)
+                    print(f"成功添加: {cleaned_text} -> {action_name}")
                 
-                # 保存更新后的数据
-                with open(json_path, 'w', encoding='utf-8') as f:
-                    json.dump(speech_data, f, ensure_ascii=False, indent=4)
-                print(f"数据已保存到 {json_path}")
-            else:
-                print("未能识别语音，请重试")
+                    # 保存更新后的数据
+                    with open(json_path, 'w', encoding='utf-8') as f:
+                        json.dump(speech_data, f, ensure_ascii=False, indent=4)
+                    print(f"数据已保存到 {json_path}")
+                else:
+                    print("未能识别语音，请重试")
         except ValueError:
             print("请输入有效的数字")
         except Exception as e:
