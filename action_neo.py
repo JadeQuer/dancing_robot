@@ -2,6 +2,7 @@ import os
 import time
 import json
 import serial
+import cv2
 from rhythm_recog import rhythm_recog
 from speech_recog import speech_recog
 from datapackage import DataPackageConverter
@@ -80,16 +81,31 @@ def action_neo(text):
                     print("姿势识别器未初始化，尝试重新初始化...")
                     try:
                         pose_identifier = StaticPostureIdentifier()
+                        print("姿势识别器重新初始化成功")
+                    except FileNotFoundError as e:
+                        print(f"姿势识别器初始化失败 - 模型文件缺失: {e}")
+                        play_audio('resources/sorry.MP3')
+                        return
                     except Exception as e:
-                        print(f"初始化姿势识别器失败: {e}")
+                        print(f"姿势识别器初始化失败 - 未知错误: {e}")
                         play_audio('resources/sorry.MP3')
                         return
                 
                 
                 # 使用初始化好的识别器实例
                 print("请在摄像头前保持姿势...")
-                # 调用静态姿势识别函数
-                pose = pose_identifier.recognize_posture(camera_index=0, timeout=15, stable_duration=2.0, display=True,camera_rotation = 90)
+                try:
+                    # 调用静态姿势识别函数
+                    pose = pose_identifier.recognize_posture(camera_index=0, timeout=15, stable_duration=2.0, display=True,camera_rotation = 90)
+                except cv2.error as e:
+                    print(f"摄像头访问错误: {e}")
+                    play_audio('resources/sorry.MP3')
+                    break
+                except Exception as e:
+                    print(f"姿势识别过程中发生错误: {e}")
+                    play_audio('resources/sorry.MP3')
+                    break
+                    
                 send_bytes = DataPackageConverter("FuWei.bin").hex_output
                 send_serial_data(ser, send_bytes)
                 
