@@ -23,7 +23,7 @@ def initialize_serial():
 
 
 def play_audio(audio_file):
-    os.system('mplayer -volume 200 %s' % audio_file)
+    os.system('mplayer -volume 325 %s' % audio_file)
     
 # 保存局部变量到文件
 def save_variable_to_file(value):
@@ -61,16 +61,19 @@ def action_neo(text):
             break
 
     if not keyword:
-        play_audio('resources/sorry.wav')
+        play_audio('resources/sorry.MP3')
         
     else:
         # 姿态识别
-        if keyword == "pose_recognition":            
-            play_audio('resources/begin_pose.wav')
-            play_audio('resources/dong.wav')
+        if keyword == "pose_recognition":
+
             
             while True:
-                
+                play_audio('resources/pose.MP3')
+                send_bytes = DataPackageConverter("WanYao.bin").hex_output
+                send_serial_data(ser, send_bytes)
+
+                play_audio('resources/dong.wav')
                 # 检查姿势识别器是否已成功初始化
                 global pose_identifier
                 if pose_identifier is None:
@@ -79,43 +82,45 @@ def action_neo(text):
                         pose_identifier = StaticPostureIdentifier()
                     except Exception as e:
                         print(f"初始化姿势识别器失败: {e}")
-                        play_audio('resources/sorry.wav')
+                        play_audio('resources/sorry.MP3')
                         return
+                
                 
                 # 使用初始化好的识别器实例
                 print("请在摄像头前保持姿势...")
                 # 调用静态姿势识别函数
-                pose = pose_identifier.recognize_posture(camera_index=0, timeout=15, stable_duration=2.0, display=True,camera_rotation = 0)
-                
+                pose = pose_identifier.recognize_posture(camera_index=0, timeout=15, stable_duration=2.0, display=True,camera_rotation = 90)
+                send_bytes = DataPackageConverter("FuWei.bin").hex_output
+                send_serial_data(ser, send_bytes)
                 
                 if pose is None:
-                    play_audio('resources/timeout.wav')
+                    play_audio('resources/timeout.MP3')
                     break
                 
                 if pose == "stop":
-                    play_audio('resources/stop.wav')
+                    play_audio('resources/stop.MP3')
                     break
             
-                play_audio(pose + ".wav")
+                play_audio("resources/" + pose + ".MP3")
                 send_bytes = DataPackageConverter(pose + ".bin").hex_output
                 send_serial_data(ser, send_bytes)
 
         # 韵律识别
         elif keyword == "rhythm_recognition":
-            play_audio("resources/yunlv.wav")
+            play_audio("resources/rhythm.MP3")
             matched_song, compare_result = rhythm_recog()
-            play_audio("resources/music"+matched_song) # 歌曲名称
-            if matched_song == "choice.MP3":
+            play_audio("resources/index"+matched_song) # 歌曲名称
+            if matched_song == "Angeline.MP3":
                 movements = DataPackageConverter("choice.odr").hex_output
             else:
                 movements = DataPackageConverter("dance.odr").hex_output
             ser.write(bytearray(movements)) # 执行动作
-            play_audio(matched_song) # 播放歌曲
-        
+            play_audio("resources/"+matched_song) # 播放歌曲
+
         # 语音识别自选动作
         elif keyword == "speech_recognition":
             print("进入语音识别模式，请说出动作指令...")
-            play_audio('resources/please_speak.wav')  # 播放提示音
+            play_audio('resources/please_speak.MP3')  # 播放提示音
             
             failed_count = 0  # 记录连续失败次数
             max_failed_attempts = 3  # 最大失败次数
@@ -126,9 +131,9 @@ def action_neo(text):
                 print(f"识别到的指令: {word}")
                 
                 # 检查是否是退出指令
-                if "结束" in word:
+                if "结束" in word or "仅剩" in word or "既然说" in word or "家住" in word or "引述" in word or "别墅" in word or "野兽" in word:
                     print("识别到退出指令，结束语音识别模式")
-                    play_audio('resources/exit.wav')
+                    play_audio('resources/exit.MP3')
                     break
                 
                 # 在speech_train.json中查找匹配的动作
@@ -144,13 +149,17 @@ def action_neo(text):
                             print(f"找到匹配动作: {action} -> {action_keyword}")
                             
                             # 执行对应的动作
-                            audio_file = action_keyword + ".wav"
-                            send_bytes = DataPackageConverter(action_keyword + ".bin").hex_output
+                            audio_file = "resources/" + action_keyword + ".MP3"
                             play_audio(audio_file)
-                            send_serial_data(ser, send_bytes)
+                            if action in ["前进","后退","左移","右移","向左转","向右转"]:
+                                send_bytes = DataPackageConverter(action_keyword + ".odr").hex_output
+                                send_serial_data(ser, send_bytes)
+                            else :
+                                send_bytes = DataPackageConverter(action_keyword + ".bin").hex_output
+                                send_serial_data(ser, send_bytes)
                             action_found = True
                             failed_count = 0  # 重置失败计数
-                            play_audio('resources/please_speak.wav') 
+                            play_audio('resources/please_speak.MP3')
                             break
                     
                     if action_found:
@@ -160,20 +169,19 @@ def action_neo(text):
                 if not action_found:
                     failed_count += 1
                     print(f"未找到匹配的动作 (失败次数: {failed_count}/{max_failed_attempts})")
-                    play_audio('resources/sorry.wav')
+                    play_audio('resources/sorry.MP3')
                     
                     # 检查是否达到最大失败次数
                     if failed_count >= max_failed_attempts:
-                        print("连续3次,未识别到有效动作，退出语音识别模式")
-                        play_audio('resources/timeout.wav')
+                        print("连续3次未识别到有效动作，退出语音识别模式")
+                        play_audio('resources/exit.MP3')
                         break
                     else:
                         print("请重新说出动作指令...")
-                        play_audio('resources/please_speak.wav')
+                        play_audio('resources/please_speak.MP3')
                 else:
                     # 成功执行动作后，提示继续或结束
                     print("动作执行完成，请继续说出下一个动作指令，或说'结束'退出")
-                    play_audio('resources/continue_or_exit.wav')
 
         if ser and ser.isOpen():
             ser.close()
@@ -212,7 +220,13 @@ if __name__ == '__main__':
         elif order == 1:
             print("请说出指令...")
             text = speech_recog()
+            print(text)
             action_neo(text)
         elif order == 2:
-            text = input()
-            action_neo(text)
+            choice = int(input("请输入指令:1:姿态识别 2:韵律识别 3:语音识别"))
+            if choice == 1:
+                action_neo("姿态识别")
+            elif choice == 2:
+                action_neo("韵律识别")
+            else:
+                action_neo("语音识别")

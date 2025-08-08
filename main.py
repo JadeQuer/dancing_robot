@@ -25,7 +25,7 @@ warnings.filterwarnings("ignore")
 
 config.initialize_pose_identifier()
     
-model = "model/killjoy.pmdl"
+model = "model/abao.pmdl"
 
 # capture SIGINT signal, e.g., Ctrl+C
 signal.signal(signal.SIGINT, signal_handler)
