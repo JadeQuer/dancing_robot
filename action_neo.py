@@ -183,6 +183,19 @@ def action_neo(text):
                     # 成功执行动作后，提示继续或结束
                     print("动作执行完成，请继续说出下一个动作指令，或说'结束'退出")
 
+        elif keyword == "choushui":
+            send_bytes = DataPackageConverter("choushui.bin").hex_output
+            send_serial_data(ser, send_bytes)
+        
+        else:
+            play_audio("resources/" + keyword + ".MP3")
+            if keyword in ["QianJin","HouTui", "ZuoYi", "YouYi", "XiangZuoZhuan", "XiangYouZhuan"]:
+                send_bytes = DataPackageConverter(keyword + ".odr").hex_output
+                send_serial_data(ser, send_bytes)
+            else:
+                send_bytes = DataPackageConverter(keyword + ".bin").hex_output
+                send_serial_data(ser, send_bytes)
+            
         if ser and ser.isOpen():
             ser.close()
             
