@@ -183,7 +183,15 @@ def action_neo(text):
 
 def send_serial_data(ser, data):
     ser.write(bytearray(data))
+    start_time = time.time()  # 记录开始时间
+    timeout = 10  # 设置10秒超时
+    
     while True:
+        # 检查是否超时
+        if time.time() - start_time > timeout:
+            print("串口通信超时，自动退出循环")
+            break
+            
         size = ser.inWaiting()  # 获得缓冲区字符
         if size != 0:
             res = ser.read(size)  # 读取内容并显示
@@ -191,7 +199,7 @@ def send_serial_data(ser, data):
             ser.flushInput()  # 情况接收缓存区
             if res == b'\xff\x00\x05\x05\x00\x00\x18"' or res == b'\xff\x00\x05\x05\x00\x00\x19"':
                 break
-            time.sleep(0.5)  # 软件延时
+        time.sleep(0.5)  # 软件延时
             
 
 
