@@ -201,16 +201,16 @@ def action_neo(text):
 
         elif keyword == "choushui":
             send_bytes = DataPackageConverter("choushui.bin").hex_output
-            send_serial_data(ser, send_bytes)
+            ser.write(bytearray(send_bytes))
         
         else:
             play_audio("resources/" + keyword + ".MP3")
-            if keyword in ["QianJin","HouTui", "ZuoYi", "YouYi", "XiangZuoZhuan", "XiangYouZhuan"]:
+            if keyword in ["ZuoYi", "YouYi", "XiangZuoZhuan", "XiangYouZhuan"]:
                 send_bytes = DataPackageConverter(keyword + ".odr").hex_output
-                send_serial_data(ser, send_bytes)
+                send_serial_data(ser, send_bytes,50)
             else:
                 send_bytes = DataPackageConverter(keyword + ".bin").hex_output
-                send_serial_data(ser, send_bytes)
+                send_serial_data(ser, send_bytes,10)
             
         if ser and ser.isOpen():
             ser.close()
@@ -218,11 +218,11 @@ def action_neo(text):
 
 
 
-def send_serial_data(ser, data):
+def send_serial_data(ser, data,delay):
     ser.write(bytearray(data))
     start_time = time.time()  # 记录开始时间
-    timeout = 10  # 设置10秒超时
-    
+    timeout = delay  # 设置超时时长
+
     while True:
         # 检查是否超时
         if time.time() - start_time > timeout:
@@ -236,7 +236,7 @@ def send_serial_data(ser, data):
             ser.flushInput()  # 情况接收缓存区
             if res == b'\xff\x00\x05\x05\x00\x00\x18"' or res == b'\xff\x00\x05\x05\x00\x00\x19"':
                 break
-        time.sleep(0.5)  # 软件延时
+            time.sleep(0.5)  # 软件延时(注意缩进)
             
 
 
