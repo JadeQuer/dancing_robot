@@ -52,9 +52,8 @@ def play_audio(audio_file):
 
 
 def rhythm_recog():
-    play_audio('resources/开始韵律识别.wav')
     record_music('./temp_record/song_temp.MP3', time=13)
-    play_audio('resources/结束录音.wav')
+    play_audio('resources/finish.MP3')
     all_data = np.load('rhythm_train/beatDatabase.npy', allow_pickle=True)
     beat_database = all_data.item()
 
