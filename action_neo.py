@@ -218,7 +218,7 @@ def action_neo(text):
 
 
 
-def send_serial_data(ser, data,delay):
+def send_serial_data(ser, data, delay=10):
     ser.write(bytearray(data))
     start_time = time.time()  # 记录开始时间
     timeout = delay  # 设置超时时长
@@ -252,10 +252,10 @@ if __name__ == '__main__':
             print(text)
             action_neo(text)
         elif order == 2:
-            choice = int(input("请输入指令:1:姿态识别 2:韵律识别 3:语音识别"))
+            choice = int(input("请输入指令:1:姿态识别 2:歌曲识别 3:语音识别"))
             if choice == 1:
                 action_neo("姿态识别")
             elif choice == 2:
-                action_neo("韵律识别")
+                action_neo("歌曲识别")
             else:
                 action_neo("语音识别")
