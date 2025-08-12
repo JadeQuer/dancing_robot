@@ -65,7 +65,7 @@ def action_neo(text):
         play_audio('resources/sorry.MP3')
         current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         with open("word.txt", "a", encoding="utf-8") as f:
-            f.write(f"[{current_time}] 识别失败的词汇: {word}\n")
+            f.write(f"[{current_time}] 识别失败的词汇: {text}\n")
             f.flush()  # 强制刷新缓冲区
         
     else:
@@ -215,6 +215,7 @@ def action_neo(text):
         elif keyword == "choushui":
             send_bytes = DataPackageConverter("choushui.bin").hex_output
             ser.write(bytearray(send_bytes))
+            ser.write(bytearray(send_bytes))
         
         else:
             play_audio("resources/" + keyword + ".MP3")
@@ -249,6 +250,7 @@ def send_serial_data(ser, data, delay=10):
             ser.flushInput()  # 情况接收缓存区
             if res == b'\xff\x00\x05\x05\x00\x00\x18"' or res == b'\xff\x00\x05\x05\x00\x00\x19"':
                 break
+            time.sleep(0.5)  # 软件延时(注意缩进)
             time.sleep(0.5)  # 软件延时(注意缩进)
             
 
