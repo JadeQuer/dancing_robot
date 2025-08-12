@@ -63,6 +63,10 @@ def action_neo(text):
 
     if not keyword:
         play_audio('resources/sorry.MP3')
+        current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        with open("word.txt", "a", encoding="utf-8") as f:
+            f.write(f"[{current_time}] 识别失败的词汇: {word}\n")
+            f.flush()  # 强制刷新缓冲区
         
     else:
         # 姿态识别
@@ -167,9 +171,9 @@ def action_neo(text):
                             # 执行对应的动作
                             audio_file = "resources/" + action_keyword + ".MP3"
                             play_audio(audio_file)
-                            if action in ["前进","后退","左移","右移","向左转","向右转"]:
+                            if action in ["左移","右移","向左转","向右转"]:
                                 send_bytes = DataPackageConverter(action_keyword + ".odr").hex_output
-                                send_serial_data(ser, send_bytes)
+                                send_serial_data(ser, send_bytes, 50)
                             else :
                                 send_bytes = DataPackageConverter(action_keyword + ".bin").hex_output
                                 send_serial_data(ser, send_bytes)
@@ -184,6 +188,15 @@ def action_neo(text):
                 # 如果没有找到匹配的动作
                 if not action_found:
                     failed_count += 1
+                    # 把识别失败时识别到的word写入word.txt文件
+                    try:
+                        current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                        with open("word.txt", "a", encoding="utf-8") as f:
+                            f.write(f"[{current_time}] 识别失败的词汇: {word}\n")
+                            f.flush()  # 强制刷新缓冲区
+                        print(f"已记录识别失败的词汇到word.txt: {word} (时间: {current_time})")
+                    except Exception as e:
+                        print(f"写入word.txt文件时出错: {e}")
                     print(f"未找到匹配的动作 (失败次数: {failed_count}/{max_failed_attempts})")
                     play_audio('resources/sorry.MP3')
                     
@@ -207,10 +220,10 @@ def action_neo(text):
             play_audio("resources/" + keyword + ".MP3")
             if keyword in ["ZuoYi", "YouYi", "XiangZuoZhuan", "XiangYouZhuan"]:
                 send_bytes = DataPackageConverter(keyword + ".odr").hex_output
-                send_serial_data(ser, send_bytes,50)
+                send_serial_data(ser, send_bytes, 50)
             else:
                 send_bytes = DataPackageConverter(keyword + ".bin").hex_output
-                send_serial_data(ser, send_bytes,10)
+                send_serial_data(ser, send_bytes, 10)
             
         if ser and ser.isOpen():
             ser.close()
