@@ -122,8 +122,9 @@ def action_neo(text):
                     break
             
                 play_audio("resources/" + pose + ".MP3")
-                send_bytes = DataPackageConverter(pose + ".bin").hex_output
-                send_serial_data(ser, send_bytes)
+                if pose != "GongJianBu":
+                    send_bytes = DataPackageConverter(pose + ".bin").hex_output
+                    send_serial_data(ser, send_bytes)
 
         # 韵律识别
         elif keyword == "rhythm_recognition":
@@ -211,11 +212,6 @@ def action_neo(text):
                 else:
                     # 成功执行动作后，提示继续或结束
                     print("动作执行完成，请继续说出下一个动作指令，或说'结束'退出")
-
-        elif keyword == "choushui":
-            send_bytes = DataPackageConverter("choushui.bin").hex_output
-            ser.write(bytearray(send_bytes))
-            ser.write(bytearray(send_bytes))
         
         else:
             play_audio("resources/" + keyword + ".MP3")
@@ -251,8 +247,6 @@ def send_serial_data(ser, data, delay=10):
             if res == b'\xff\x00\x05\x05\x00\x00\x18"' or res == b'\xff\x00\x05\x05\x00\x00\x19"':
                 break
             time.sleep(0.5)  # 软件延时(注意缩进)
-            time.sleep(0.5)  # 软件延时(注意缩进)
-            
 
 
 if __name__ == '__main__':
