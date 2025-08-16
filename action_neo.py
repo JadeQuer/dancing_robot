@@ -33,6 +33,11 @@ def save_variable_to_file(value):
 
 
 def action_neo(text):
+    if "关机" in text:
+        play_audio('resources/shutdown.MP3')
+        os.system("sync")
+        os.system("sudo shutdown -h now")
+        return
     # 读取 speech_train.json 文件
     try:
         with open('speech_train.json', 'r', encoding='utf-8') as f:
