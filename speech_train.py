@@ -2,18 +2,11 @@ from speech_recog import speech_recog
 import json
 import os
 
-speech_result = {   1 : '前进', 
-                    2 : '后退', 
-                    3 : '左移', 
-                    4 : '右移', 
-                    5 : '左脚撑', 
-                    6 : '右脚撑',
-                    7 : '举左手',
-                    8 : '举双手',
-                    9 : '向左转',
-                    10 : '向右转',
-                    11 : '姿态识别',
-                    12 : '韵律识别'}
+speech_result = {   1 : '评估机体状态', 
+                    2 : '开始探测', 
+                    3 : '检测环境', 
+                    4 : '继续任务', 
+                    5 : '分离机体'}
 
 def list_clean(json_path='speech_train.json'):
     """
@@ -80,7 +73,7 @@ def speech_train():
 
     while True:
         print("请输入你要训练的语音指令：")
-        print("0:退出 1:前进 2:后退 3:左移 4:右移 5:左脚撑 6:右脚撑 7:举左手 8:举双手 9:向左转 10:向右转 11:姿态识别 12:韵律识别")
+        print("0:退出 1 :评估机体状态, 2 : 开始探测, 3 : 检测环境, 4 : 继续任务, 5 : 分离机体")
         try:
             num = int(input())
             if num == 0:
