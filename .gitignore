@@ -1,0 +1,14 @@
+__pycache__/
+Python3/__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+._*
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+temp_record/
+last_result.jpg
+result.txt
